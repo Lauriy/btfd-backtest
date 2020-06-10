@@ -7,11 +7,15 @@ END_DATE = datetime.date(2020, 6, 10)
 EMA_PERIOD = 50
 
 dataframe = pd.read_csv('sp500_2000.csv')
+volume_ema = dataframe.loc[:, ['Volume']].ewm(span=200).mean()
+price_ema = dataframe.loc[:, ['Close']].ewm(span=EMA_PERIOD).mean()
 
 for row in dataframe.iloc[252:].itertuples():
     if row.Close < row.Open:
-        print(f'{row.Date} is a red day')
-        volume_ema = dataframe.iloc[row.Index:row.Index - 50, [6]].Volume.ewm(span=EMA_PERIOD).mean()
-        print(volume_ema)
-        if row.Volume > volume_ema:
-            print(f'Features a volume spike with {row.Volume} > {volume_ema}')
+        if price_ema.Close[row.Index] > row.Close:
+            # Volume is 7th column
+            volume_avg = dataframe.iloc[row.Index - EMA_PERIOD:row.Index, [6]].mean()
+            if volume_avg.Volume * 1.5 < row.Volume:
+                print(f'{row.Date} is a red day')
+                print(f'Price below EMA {row.Close} < {price_ema.Close[row.Index]}')
+                print(f'Volume spike detected, buy here')
